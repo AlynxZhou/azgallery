@@ -14,4 +14,6 @@ Copy `config.example.json` to `config.json` and modify it, then run `node build.
 
 `galleryDir` is where you place image albums, should under `docDir`.
 
+Don't forget to modify `CNAME` under your `docDir` to use your own domain.
+
 For how to generate image albums, see <https://github.com/AlynxZhou/image-collector-bot/>.
