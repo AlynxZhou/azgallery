@@ -8,7 +8,7 @@ A static gallery website.
 
 # Usage
 
-Modify `config.json`, then run `node build.js` or `deploy.sh`.
+Copy `config.example.json` to `config.json` and modify it, then run `node build.js` or `deploy.sh`.
 
 `docDir` is where you place site's files.
 
