@@ -20,6 +20,7 @@ documentReady(() => {
     if (siteData["title"] != null) {
       const titleElement = document.getElementById("title");
       titleElement.innerHTML = siteData["title"];
+      document.title = siteData["title"];
     }
     if (siteData["subtitle"] != null) {
       const subtitleElement = document.getElementById("subtitle");
