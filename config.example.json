@@ -1,0 +1,10 @@
+{
+  "docDir": "docs",
+  "galleryDir": "gallery",
+  "baseURL": "YOUR SITE BASE URL",
+  "rootDir": "YOUR SITE ROOT DIR",
+  "perPage": "10",
+  "title": null,
+  "subtitle": null,
+  "info": null
+}

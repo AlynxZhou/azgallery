@@ -1,0 +1,213 @@
+:root {
+  /**
+   * Use vw for this, because it should be fixed to different elements and not
+   * too long on small screen.
+   */
+  --timeline-padding: 5vw;
+  /* Use rem for this, because it should be fixed to different elements. */
+  --timeline-width: 0.5rem;
+  /* Use em for this, because it should be the same size to elements' font. */
+  --timeline-dot-size: 1em;
+  /* See <https://colorhunt.co/palette/22577e5584ac95d1ccf6f2d4>. */
+  --color-1: #22577E;
+  --color-2: #5584AC;
+  --color-3: #95D1CC;
+  --color-4: #F6F2D4;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--color-2);
+  font-size: 16px;
+  font-family: Roboto, "Noto Sans", "Noto Sans CJK", Helvetica, Arial, sans-serif;
+  color: var(--color-4);
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  justify-content: stretch;
+  align-items: stretch;
+}
+
+a {
+  color: var(--color-4);
+  text-decoration: none;
+  border-bottom: 0.05em dotted var(--color-4);
+  transition: opacity 0.3s ease-in-out;
+}
+
+a:hover {
+  opacity: 0.7;
+}
+
+div.title {
+  font-size: 5em;
+  padding: 1rem 0;
+}
+
+div.subtitle {
+  font-size: 3em;
+  padding: 1rem 0;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  background: url("../images/texture.png");
+}
+
+.card {
+  background: white;
+  overflow: hidden;
+  padding: 0.5em;
+  margin: 0.5em;
+  box-shadow: 0 0 1em 0.5em rgba(0, 0, 0, 0.19);
+}
+
+div.container {
+  max-width: 80vw;
+  /* Center alignment. */
+  margin: 0 auto;
+}
+
+.timeline {
+  border-left: var(--timeline-width) solid var(--color-1);
+  /* Timeline is on the left. */
+  padding-left: var(--timeline-padding);
+}
+
+div.gallery {
+  font-family: "Roboto Slab", "Noto Serif", "Noto Serif CJK", serif;
+}
+
+div.gallery-album {
+  width: 100%;
+}
+
+.gallery-date {
+  /**
+   * Absolute elements are placed relative to non-static parent element, so here
+   * must be relative.
+   */
+  position: relative;
+}
+
+.gallery-date::before {
+  content: "";
+  position: absolute;
+  width: var(--timeline-dot-size);
+  height: var(--timeline-dot-size);
+  /**
+   * To make dot on the border line:
+   * 1. Timeline padding.
+   * 2. Half of timeline width. (Border is not in padding.)
+   * 3. Half of dot width.
+   */
+  /**
+   * calc() can handle different units or percent, but you should give 0 a unit.
+   */
+  left: calc(0em - var(--timeline-padding) - var(--timeline-width) / 2 - var(--timeline-dot-size) / 2);
+  /* Keep dot in center. */
+  top: calc(50% - var(--timeline-dot-size) / 2);
+  background: var(--color-1);
+  border-radius: 50%;
+}
+
+/**
+ * See <https://css-tricks.com/adaptive-photo-layout-with-flexbox/>.
+ * Flex box always wants to fill all the lines, but it's not easy for images to
+ * do this, a solution is to put an element that can be stretched to fill rest
+ * space, so we put the text at last.
+ */
+div.gallery-album-images {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: stretch;
+  align-items: stretch;
+}
+
+/* Placeholder. */
+div.gallery-album-images::after {
+  content:"";
+  display: block;
+  padding: 0.5em;
+  margin: 0.5em;
+  flex-grow: 10;
+}
+
+div.gallery-album-image {
+  /* Screen is horizontal, we decide width by height. */
+  width: auto;
+  height: 40vh;
+  transition: height 0.3s ease-in-out;
+}
+
+/* Not so good. */
+/* div.gallery-album-image:hover { */
+/*   height: 90vh; */
+/* } */
+
+div.gallery-album-image img {
+  /* Fill parent. */
+  width: 100%;
+  height: 100%;
+  /* object-fit: cover; */
+}
+
+div.gallery-album-text {
+  /* position: relative; */
+  padding: 1em 0;
+  font-weight: bold;
+}
+
+div.gallery-album-text::before {
+  content: "「";
+  font-size: 2rem;
+}
+
+div.gallery-album-text::after {
+  content: "」";
+  font-size: 2rem;
+}
+
+div.gallery-album-authors {
+  display: none;
+}
+
+nav.pagination {
+  font-size: 1.5em;
+  display: block;
+  padding: 1rem 0;
+}
+
+a.page-number {
+  display: inline-block;
+  padding: 0.3em 0.5em;
+  margin: 0.1em 0.25em;
+  border-bottom: 0.15em solid var(--color-4);
+}
+
+div.info {
+  padding: 1rem 0;
+}
+
+@media (max-aspect-ratio: 1/1) {
+  div.gallery-album-image {
+    /* Screen is horizontal, we decide height by width. */
+    /**
+     * Total is 80vw, timeline padding is 5vw, considering timeline width, any
+     * value less than 70vw should be safe.
+     */
+    width: 60vw;
+    height: auto;
+  }
+}
