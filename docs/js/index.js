@@ -96,7 +96,9 @@ documentReady(() => {
       }
       if (album["text"] != null) {
         results.push("<div class=\"gallery-album-text\">");
+        results.push("<div class=\"gallery-album-text-content\">");
         results.push(album["text"]);
+        results.push("</div>");
         results.push("</div>");
       }
       if (album["authors"] != null) {
