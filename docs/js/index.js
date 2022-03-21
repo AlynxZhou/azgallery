@@ -14,7 +14,8 @@ const documentReady = (callback) => {
 };
 
 documentReady(() => {
-  fetch("data/site.json").then((response) => {
+  // Use `no-cache` to let browser always ask server for changed or not.
+  fetch("data/site.json", {"cache": "no-cache"}).then((response) => {
     return response.json();
   }).then((siteData) => {
     if (siteData["title"] != null) {
@@ -31,7 +32,8 @@ documentReady(() => {
       infoElement.innerHTML = siteData["info"];
     }
   });
-  fetch("data/gallery.json").then((response) => {
+  // Use `no-cache` to let browser always ask server for changed or not.
+  fetch("data/gallery.json", {"cache": "no-cache"}).then((response) => {
     return response.json();
   }).then((galleryData) => {
     const {pages} = galleryData;
@@ -44,7 +46,7 @@ documentReady(() => {
     const searchParams = new window.URLSearchParams(window.location.search);
     const page = searchParams.has("p") ? searchParams.get("p") : 1;
     const pagePath = page > pages.length ? pages[0] : pages[page - 1];
-    return fetch(pagePath);
+    return fetch(pagePath, {"cache": "no-cache"});
   }).then((response) => {
     return response.json();
   }).then((pageData) => {
