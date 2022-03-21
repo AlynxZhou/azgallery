@@ -44,6 +44,47 @@ a:hover {
   opacity: 0.7;
 }
 
+div.sk-wave {
+  font-size: 1rem;
+  margin: 2em auto;
+  height: 3em;
+  text-align: center;
+}
+
+div.sk-rect {
+  background: var(--color-sk-wave-background);
+  height: 100%;
+  width: 0.5em;
+  display: inline-block;
+  animation: sk-wave-stretch-delay 1.2s infinite ease-in-out;
+  animation-delay: -1.2s;
+}
+
+div.sk-rect:nth-child(2n) {
+  animation-delay: -1.1s;
+}
+
+div.sk-rect:nth-child(3n) {
+  animation-delay: -1.0s;
+}
+
+div.sk-rect:nth-child(4n) {
+  animation-delay: -0.9s;
+}
+
+div.sk-rect:nth-child(5n) {
+  animation-delay: -0.8s;
+}
+
+@keyframes sk-wave-stretch-delay {
+  0%, 40%, 100% {
+    transform: scaleY(0.4);
+  }
+  20% {
+    transform: scaleY(1);
+  }
+}
+
 div.title {
   font-size: 3em;
   padding: 1rem 0;
