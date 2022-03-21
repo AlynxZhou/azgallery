@@ -13,9 +13,18 @@ const documentReady = (callback) => {
   }
 };
 
+const showError = (message) => {
+  const ele = document.getElementById("error-message");
+  ele.innerHTML = message;
+  ele.style.display = "block";
+};
+
 documentReady(() => {
   // Use `no-cache` to let browser always ask server for changed or not.
-  fetch("data/site.json", {"cache": "no-cache"}).then((response) => {
+  window.fetch("data/site.json", {"cache": "no-cache"}).then((response) => {
+    if (!response.ok) {
+      throw new Error("Response Error");
+    }
     return response.json();
   }).then((siteData) => {
     if (siteData["title"] != null) {
@@ -31,9 +40,14 @@ documentReady(() => {
       const infoElement = document.getElementById("info");
       infoElement.innerHTML = siteData["info"];
     }
+  }).catch((error) => {
+    showError("部分数据加载失败，请尝试刷新页面并检查网络连接。");
   });
   // Use `no-cache` to let browser always ask server for changed or not.
-  fetch("data/gallery.json", {"cache": "no-cache"}).then((response) => {
+  window.fetch("data/gallery.json", {"cache": "no-cache"}).then((response) => {
+    if (!response.ok) {
+      throw new Error("Response Error");
+    }
     return response.json();
   }).then((galleryData) => {
     const {pages} = galleryData;
@@ -46,8 +60,11 @@ documentReady(() => {
     const searchParams = new window.URLSearchParams(window.location.search);
     const page = searchParams.has("p") ? searchParams.get("p") : 1;
     const pagePath = page > pages.length ? pages[0] : pages[page - 1];
-    return fetch(pagePath, {"cache": "no-cache"});
+    return window.fetch(pagePath, {"cache": "no-cache"});
   }).then((response) => {
+    if (!response.ok) {
+      throw new Error("Response Error");
+    }
     return response.json();
   }).then((pageData) => {
     const {albums} = pageData;
@@ -115,5 +132,7 @@ documentReady(() => {
       results.push("</div>");
     }
     galleryElement.innerHTML = results.join("");
+  }).catch((error) => {
+    showError("部分数据加载失败，请尝试刷新页面并检查网络连接。");
   });
 });
