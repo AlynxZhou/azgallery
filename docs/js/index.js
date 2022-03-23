@@ -58,7 +58,8 @@ documentReady(() => {
     }
     paginationElement.innerHTML = results.join("");
     const searchParams = new window.URLSearchParams(window.location.search);
-    const page = searchParams.has("p") ? searchParams.get("p") : 1;
+    const page = searchParams.has("p") ?
+      Number.parseInt(searchParams.get("p")) : 1;
     const pagePath = page > pages.length ? pages[0] : pages[page - 1];
     return window.fetch(pagePath, {"cache": "no-cache"});
   }).then((response) => {
