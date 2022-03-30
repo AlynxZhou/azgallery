@@ -3,7 +3,7 @@
   "galleryDir": "gallery",
   "baseURL": "https://gallary.alynx.one",
   "rootDir": "/",
-  "perPage": "10",
+  "perPage": 10,
   "title": "Alynx Zhou 的照片墙",
   "subtitle": null,
   "info": "<a href=\"https://github.com/AlynxZhou/azgallery/\" target=\"_blank\" rel=\"external nofollow noreferrer noopener\">照片墙源码</a> <a href=\"https://github.com/AlynxZhou/image-collector-bot/\" target=\"_blank\" rel=\"external nofollow noreferrer noopener\">发图机器人源码</a>"
