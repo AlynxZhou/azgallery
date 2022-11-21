@@ -24,6 +24,7 @@ body {
   font-size: 16px;
   /* font-family: Roboto, "Noto Sans", "Noto Sans CJK", Helvetica, Arial, sans-serif; */
   font-family: "Roboto Slab", "Noto Serif", "Noto Serif CJK", serif;
+  font-weight: bold;
   color: var(--color-4);
   margin: 0;
   padding: 0;
