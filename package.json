@@ -1,0 +1,36 @@
+{
+  "name": "azgallery",
+  "version": "0.0.1",
+  "description": "AZGallery",
+  "type": "module",
+  "bin": {
+    "azgallery": "bin/azgallery.js"
+  },
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "create": "node bin/azgallery.js create",
+    "build": "node bin/azgallery.js build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AlynxZhou/azgallery.git"
+  },
+  "keywords": [
+    "Gallery",
+    "Node.js",
+    "Static Site Generator"
+  ],
+  "author": "Alynx Zhou <alynx.zhou@gmail.com> (https://alynx.one/)",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/AlynxZhou/azgallery/issues"
+  },
+  "homepage": "https://gallery.alynx.one/",
+  "dependencies": {
+    "commander": "^11.1.0",
+    "sharp": "^0.32.6"
+  }
+}
