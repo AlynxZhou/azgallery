@@ -1,7 +1,12 @@
 import * as path from "node:path";
-import * as fs from "node:fs/promises";
+import * as fsp from "node:fs/promises";
 import * as readline from "node:readline/promises";
 import sharp from "sharp";
+import {loadJSON, isString} from "./utils.js";
+import Logger from "./logger.js";
+
+const max_image_size = 1800;
+let logger = null;
 
 const readOne = async (prompt) => {
   const rl = readline.createInterface({
@@ -64,13 +69,13 @@ const compressJPG = async (src, dst) => {
     [width, height] = [height, width];
   }
 
-  // Limit the longest edge to 1280. That's what Telegram does.
+  // Limit the longest edge to `max_image_size`. Like what Telegram does.
   if (width > height) {
-    height = Math.round(height * 1280 / width);
-    width = 1280;
+    height = Math.round(height * max_image_size / width);
+    width = max_image_size;
   } else {
-    width = Math.round(width * 1280 / height);
-    height = 1280;
+    width = Math.round(width * max_image_size / height);
+    height = max_image_size;
   }
 
   return image.resize(width, height).jpeg({"mozjpeg": true}).toFile(dst);
@@ -79,22 +84,25 @@ const compressJPG = async (src, dst) => {
 const writeAlbum = async (album, galleryPath, opts = {}) => {
   let subDirs;
   try {
-    subDirs = await fs.readdir(galleryPath);
+    subDirs = await fsp.readdir(galleryPath);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     subDirs = [];
   }
   const dirName = makeDirName(album["date"], subDirs);
   const albumPath = path.join(galleryPath, dirName);
+  logger.debug(`Creating album ${logger.cyan(albumPath)}`);
   try {
-    await fs.mkdir(albumPath);
+    await fsp.mkdir(albumPath);
     const fileNames = await Promise.all(album["images"].map(async (src, i) => {
       const fileName = `${i + 1}.jpg`;
       const filePath = path.join(albumPath, fileName);
       if (opts["compress"]) {
+        logger.debug(`Writing compressed version of ${logger.cyan(src)} to ${logger.cyan(filePath)}...`);
         await compressJPG(src, filePath);
       } else {
-        await fs.copyFile(src, filePath);
+	logger.debug(`Copying ${logger.cyan(src)} to ${logger.cyan(filePath)}...`);
+        await fsp.copyFile(src, filePath);
       }
       return fileName;
     }));
@@ -107,25 +115,26 @@ const writeAlbum = async (album, galleryPath, opts = {}) => {
       "authors": null,
       "tags": null
     };
-    await fs.writeFile(
+    await fsp.writeFile(
       path.join(albumPath, "index.json"),
       JSON.stringify(metadata),
       "utf8"
     );
   } catch (error) {
-    console.error(error);
-    await fs.rm(albumPath, {"recursive": true, "force": true});
+    logger.error(error);
+    // Try not to mess things up if failed.
+    await fsp.rm(albumPath, {"recursive": true, "force": true});
   }
 };
 
 const create = async (dir, opts) => {
+  logger = new Logger({"debug": opts["debug"], "color": opts["color"]});
   const configPath = opts["config"] || path.join(dir, "config.json");
-  let config;
+  let config = null;
   try {
-    const content = await fs.readFile(configPath, "utf8");
-    config = JSON.parse(content);
+    config = await loadJSON(configPath);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     return;
   }
   const {docDir, galleryDir} = config;
@@ -150,7 +159,7 @@ const create = async (dir, opts) => {
 
   if (opts["date"] === true) {
     album["date"] = Date.now();
-  } else if (typeof opts["date"] === "string") {
+  } else if (isString(opts["date"])) {
     album["date"] = parseDateOrNow(opts["date"].trim());
   } else {
     const str = await readOne("Please set created date here: ");
@@ -158,11 +167,12 @@ const create = async (dir, opts) => {
   }
 
   if (album["images"].length == 0 && album["text"] == null) {
+    logger.debug("Empty album, exiting...");
     return;
   }
 
   const galleryPath = path.join(dir, docDir, galleryDir);
-  await writeAlbum(album, galleryPath);
+  await writeAlbum(album, galleryPath, {"compress": opts["compress"]});
 };
 
 export default create;

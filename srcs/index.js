@@ -1,13 +1,14 @@
 import {Command} from "commander";
 import create from "./create.js";
 import build from "./build.js";
+import {getVersion} from "./utils.js";
 
 const command = new Command();
 
 command
-  .version("0.0.1", "-v, --version", "Print version number.")
+  .version(getVersion(), "-v, --version", "Print version number.")
   .usage("<subcommand> [options] [dir]")
-  .description("AZGallery")
+  .description(`AZGallery v${getVersion()}`)
   .helpOption("-h, --help", "Print help information.")
   .addHelpCommand("help [subcommand]", "Print help information.");
 
@@ -19,7 +20,8 @@ command.command("create").alias("c")
   .option("-i, --image <path...>", "Append image to album.")
   .option("-t, --text <string...>", "Append text to album.")
   .option("-D, --date [YYYY-MM-DDTHH:mm:ss]", "Set album created date.")
-  .option("-C, --no-compress", "Do not compress images.")
+  .option("-Z, --no-compress", "Do not compress images.")
+  .option("-C, --no-color", "Disable colored output.")
   .helpOption("-h, --help", "Print help information.")
   .action((dir, opts) => {
     create(dir || ".", opts);
@@ -30,6 +32,7 @@ command.command("build").alias("b")
   .description("Build gallery.")
   .option("-d, --debug", "Enable debug output.")
   .option("-c, --config <json>", "Alternative config path.")
+  .option("-C, --no-color", "Disable colored output.")
   .helpOption("-h, --help", "Print help information.")
   .action((dir, opts) => {
     build(dir || ".", opts);

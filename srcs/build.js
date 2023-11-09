@@ -1,27 +1,31 @@
 import * as path from "node:path";
-import * as fs from "node:fs/promises";
+import * as fsp from "node:fs/promises";
+import {loadJSON, getVersion} from "./utils.js";
+import Logger from "./logger.js";
 
-const readGalleryAlbums = async (galleryPath) => {
+let logger = null;
+
+const readGalleryAlbums = async (docPath, galleryDir, rootDir = "/") => {
+  const galleryPath = path.join(docPath, galleryDir);
   let subDirs;
   try {
-    subDirs = await fs.readdir(galleryPath);
+    subDirs = await fsp.readdir(galleryPath);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     subDirs = [];
   }
   const strs = await Promise.all(subDirs.map((dir) => {
-    return fs.readFile(
+    return fsp.readFile(
       path.join(
 	galleryPath, dir, "index.json"
       ),
       "utf8"
     );
   }));
+  // Convert relative path to full path for URL.
   const albums = strs.map(JSON.parse).map((metadata) => {
     metadata["images"] = metadata["images"].map((image) => {
-      return path.posix.join(
-	config["rootDir"], config["galleryDir"], metadata["dir"], image
-      );
+      return path.posix.join(rootDir, galleryDir, metadata["dir"], image);
     });
     return metadata;
   });
@@ -32,8 +36,8 @@ const readGalleryAlbums = async (galleryPath) => {
   return albums;
 };
 
-const paginate = (albums) => {
-  const perPage = config["perPage"] || albums.length;
+const paginate = (albums, perPage) => {
+  perPage = perPage || albums.length;
   const pages = [];
   let perPageAlbums = [];
   for (const album of albums) {
@@ -51,7 +55,8 @@ const getPageFileName = (idx, basename = "index") => {
   return idx === 0 ? `${basename}.html` : `${basename}-${idx + 1}.html`;
 };
 
-const writePage = (cur, idx, arr, docPath) => {
+const writePage = (cur, idx, arr, docPath, opts = {}) => {
+  opts["rootDir"] = opts["rootDir"] || "/";
   const html = [];
   html.push(
     "<!DOCTYPE html>\n",
@@ -60,23 +65,23 @@ const writePage = (cur, idx, arr, docPath) => {
     "    <meta charset=\"utf-8\">\n",
     "    <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">\n",
     "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=10\">\n",
-    `    <link rel="stylesheet" type="text/css" href="${path.posix.join(config["rootDir"], "css/normalize.css")}">\n`,
-    `    <link rel="stylesheet" type="text/css" href="${path.posix.join(config["rootDir"], "css/index.css")}">\n`,
+    `    <link rel="stylesheet" type="text/css" href="${path.posix.join(opts["rootDir"], "css/normalize.css")}">\n`,
+    `    <link rel="stylesheet" type="text/css" href="${path.posix.join(opts["rootDir"], "css/index.css")}">\n`,
     // `    <script type="text/javascript" src="${path.posix.join(config["rootDir"], "js/index.js")}"></script>\n`,
-    `    <title>${config["title"] || "gallery"}</title>\n`,
+    `    <title>${opts["title"] || "gallery"}</title>\n`,
     "  </head>\n",
     "  <body>\n",
     "    <div class=\"container timeline\">\n",
     "      <header>\n"
   );
-  if (config["title"] != null) {
+  if (opts["title"] != null) {
     html.push(
-      `        <div class="title" id="title">${config["title"]}</div>\n`
+      `        <div class="title" id="title">${opts["title"]}</div>\n`
     );
   }
-  if (config["subtitle"] != null) {
+  if (opts["subtitle"] != null) {
     html.push(
-      `        <div class="subtitle" id="subtitle">${config["subtitle"]}</div>\n`
+      `        <div class="subtitle" id="subtitle">${opts["subtitle"]}</div>\n`
     );
   }
   html.push(
@@ -160,7 +165,7 @@ const writePage = (cur, idx, arr, docPath) => {
   );
   for (let i = 0; i < arr.length; ++i) {
     html.push(
-      `          <a class="page-number" href="${path.posix.join(config["rootDir"], getPageFileName(i))}">${i + 1}</a>\n`
+      `          <a class="page-number" href="${path.posix.join(opts["rootDir"], getPageFileName(i))}">${i + 1}</a>\n`
     );
   }
   html.push(
@@ -168,10 +173,10 @@ const writePage = (cur, idx, arr, docPath) => {
     "      </main>\n",
     "      <footer>\n",
   );
-  if (config["info"] != null) {
+  if (opts["info"] != null) {
     html.push(
       "       <div class=\"info\" id=\"info\">\n",
-      `         ${config["info"]}\n`,
+      `         ${opts["info"]}\n`,
       "       </div>\n"
     );
   }
@@ -180,35 +185,46 @@ const writePage = (cur, idx, arr, docPath) => {
     "    </div>\n",
     "  </body>\n",
     "</html>\n",
+    `<!-- Page built by AZGallery v${getVersion()} at ${new Date().toISOString()}. -->`
   );
   const filePath = path.join(docPath, getPageFileName(idx));
-  return fs.writeFile(filePath, html.join(""), "utf8");
+  logger.debug(`Creating ${logger.cyan(filePath)}...`);
+  return fsp.writeFile(filePath, html.join(""), "utf8");
 };
 
 const build = async (dir, opts) => {
+  logger = new Logger({"debug": opts["debug"], "color": opts["color"]});
   const configPath = opts["config"] || path.join(dir, "config.json");
-  let config;
+  let config = null;
   try {
-    const content = await fs.readFile(configPath, "utf8");
-    config = JSON.parse(content);
+    config = await loadJSON(configPath);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     return;
   }
-  const {docDir, galleryDir} = config;
+  const {docDir, galleryDir, rootDir, perPage, title, subtitle, info} = config;
 
   const docPath = path.join(dir, docDir);
   // Delete generated pages.
-  await Promise.all(await fs.readdir(docPath).filter((f) => {
+  await Promise.all((await fsp.readdir(docPath)).filter((f) => {
     return f.startsWith("index");
   }).map((f) => {
-    return fs.rm(path.join(docPath, f));
+    const p = path.join(docPath, f);
+    logger.debug(`Deleting ${logger.cyan(p)}...`);
+    return fsp.rm(p);
   }));
   // Create new pages.
-  const galleryPath = path.join(docPath, galleryDir);
   await Promise.all(
-    paginate(await readGalleryAlbums(galleryPath)).map((cur, idx, arr) => {
-      return writePage(cur, idx, arr, docPath);
+    paginate(
+      await readGalleryAlbums(docPath, galleryDir, rootDir),
+      perPage
+    ).map((cur, idx, arr) => {
+      return writePage(cur, idx, arr, docPath, {
+	rootDir,
+	title,
+	subtitle,
+	info
+      });
     })
   );
 };
