@@ -68,7 +68,6 @@ const compressJPG = async (src, dst) => {
   if ((orientation || 0) >= 5) {
     [width, height] = [height, width];
   }
-
   // Limit the longest edge to `max_image_size`. Like what Telegram does.
   if (width > height) {
     height = Math.round(height * max_image_size / width);
@@ -77,8 +76,14 @@ const compressJPG = async (src, dst) => {
     width = Math.round(width * max_image_size / height);
     height = max_image_size;
   }
-
-  return image.resize(width, height).jpeg({"mozjpeg": true}).toFile(dst);
+  return image
+    // Rotate it as orientation in metadata before metadata gets cleared.
+    .rotate()
+    // Must resize after rotate, otherwise it works like filling image on a
+    // fixed canvas, leads into cropping.
+    .resize(width, height)
+    .jpeg({"mozjpeg": true})
+    .toFile(dst);
 };
 
 const writeAlbum = async (album, galleryPath, opts = {}) => {
@@ -95,7 +100,8 @@ const writeAlbum = async (album, galleryPath, opts = {}) => {
   try {
     await fsp.mkdir(albumPath);
     const fileNames = await Promise.all(album["images"].map(async (src, i) => {
-      const fileName = `${i + 1}.jpg`;
+      // Add dir name as prefix so downloading different albums won't conflict.
+      const fileName = `${dirName}-${i + 1}.jpg`;
       const filePath = path.join(albumPath, fileName);
       if (opts["compress"]) {
         logger.debug(`Writing compressed version of ${logger.cyan(src)} to ${logger.cyan(filePath)}...`);
@@ -115,8 +121,10 @@ const writeAlbum = async (album, galleryPath, opts = {}) => {
       "authors": null,
       "tags": null
     };
+    const metadataPath = path.join(albumPath, "index.json");
+    logger.debug(`Writing album metadata to ${logger.cyan(metadataPath)}...`);
     await fsp.writeFile(
-      path.join(albumPath, "index.json"),
+      metadataPath,
       JSON.stringify(metadata),
       "utf8"
     );
@@ -145,13 +153,13 @@ const create = async (dir, opts) => {
     "date": null
   };
 
-  if (opts["text"].length > 0) {
+  if (opts["text"] != null) {
     album["text"] = opts["text"].join("");
   } else {
-    album["text"] = await readOne("Please attach text here: ");
+    album["text"] = await readOne("Please attach text here (enter empty answer to skip): ");
   }
 
-  if (opts["image"].length > 0) {
+  if (opts["image"] != null) {
     album["images"] = opts["image"];
   } else {
     album["images"] = await readMulti("Please attach image here (enter empty answer to finish): ");
@@ -162,7 +170,7 @@ const create = async (dir, opts) => {
   } else if (isString(opts["date"])) {
     album["date"] = parseDateOrNow(opts["date"].trim());
   } else {
-    const str = await readOne("Please set created date here: ");
+    const str = await readOne("Please set created date here (enter empty answer to use current): ");
     album["date"] = str == null ? Date.now() : parseDateOrNow(str);
   }
 
