@@ -1,6 +1,7 @@
 {
   "docDir": "docs",
   "galleryDir": "gallery",
+  "albumDir": "albums",
   "baseURL": "YOUR SITE BASE URL",
   "rootDir": "YOUR SITE ROOT DIR",
   "perPage": 10,

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
 
-import azgallery from "../srcs/index.js";
+import azgallery from "../azgallery/index.js";
 
 azgallery(process.argv);

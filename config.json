@@ -1,6 +1,7 @@
 {
   "docDir": "docs",
   "galleryDir": "gallery",
+  "albumDir": "albums",
   "baseURL": "https://gallary.alynx.one",
   "rootDir": "/",
   "perPage": 10,
