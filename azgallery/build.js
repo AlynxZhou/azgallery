@@ -92,8 +92,8 @@ const writeAlbumPage = async (album, docPath, albumDir, opts = {}) => {
   );
   if (opts["title"] != null) {
     html.push(
-      "        <div class=\"title\" id=\"title\">",
-      `          <a href="${opts["rootDir"]}">${opts["title"]}</a>`,
+      "        <div class=\"title\" id=\"title\">\n",
+      `          <a href="${opts["rootDir"]}">${opts["title"]}</a>\n`,
       "        </div>\n"
     );
   }
@@ -207,8 +207,8 @@ const writeIndexPage = (cur, idx, arr, docPath, opts = {}) => {
   );
   if (opts["title"] != null) {
     html.push(
-      "        <div class=\"title\" id=\"title\">",
-      `          <a href="${opts["rootDir"]}">${opts["title"]}</a>`,
+      "        <div class=\"title\" id=\"title\">\n",
+      `          <a href="${opts["rootDir"]}">${opts["title"]}</a>\n`,
       "        </div>\n"
     );
   }
