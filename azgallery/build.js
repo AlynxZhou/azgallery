@@ -67,11 +67,9 @@ const getPageFileName = (idx, basename = "index") => {
   return idx === 0 ? `${basename}.html` : `${basename}-${idx + 1}.html`;
 };
 
-const writeAlbumPage = async (album, docPath, albumDir, opts = {}) => {
+const renderPage = (albums, opts = {}) => {
   opts["rootDir"] = opts["rootDir"] || path.posix.sep;
-  if (album["images"].length === 0 && album["text"] == null) {
-    return null;
-  }
+  opts["pages"] = opts["pages"] || [];
 
   const html = [];
   html.push(
@@ -107,122 +105,6 @@ const writeAlbumPage = async (album, docPath, albumDir, opts = {}) => {
     "      <main>\n",
     "        <div class=\"gallery\" id=\"gallery\">\n",
   );
-  const formatter = new Intl.DateTimeFormat("zh-Hans", {
-    "year": "numeric",
-    "month": "2-digit",
-    "day": "2-digit",
-    "weekday": "short",
-    "hour": "2-digit",
-    "minute": "2-digit",
-    "second": "2-digit",
-    "timeZoneName": "short",
-    "hour12": false
-  });
-  const created = new Date(album["created"]);
-  const parts = formatter.formatToParts(created);
-  const obj = {};
-  for (let {type, value} of parts) {
-    obj[type] = value;
-  }
-  html.push(
-    `          <h1 class="gallery-created">${obj["year"]}</h1>\n`,
-    `          <h2 class="gallery-created">${obj["month"]}-${obj["day"]}</h2>\n`,
-    "          <div class=\"gallery-album\">\n",
-    "            <h4 class=\"gallery-created\">\n",
-    `              <a class="album-link" href="${album["path"]}">${obj["hour"]}:${obj["minute"]}:${obj["second"]}</a>\n`,
-    "            </h4>\n"
-  );
-  if (album["images"].length !== 0) {
-    html.push(
-      "            <div class=\"gallery-album-images\">\n"
-    );
-    for (const image of album["images"]) {
-      html.push(
-        "              <div class=\"gallery-album-image card\">\n",
-        `                <a class="image-link" target="_blank" href="${image}"><img src="${image}"></a>\n`,
-        "              </div>\n"
-      );
-    }
-    html.push(
-      "            </div>\n"
-    );
-  }
-  if (album["text"] != null) {
-    html.push(
-      "            <div class=\"gallery-album-text\">\n",
-      "              <div class=\"gallery-album-text-content\">\n",
-      `                ${album["text"]}\n`,
-      "              </div>\n",
-      "            </div>\n"
-    );
-  }
-  html.push(
-    "          </div>\n"
-  );
-  html.push(
-    "      </main>\n",
-    "      <footer>\n",
-  );
-  if (opts["info"] != null) {
-    html.push(
-      "       <div class=\"info\" id=\"info\">\n",
-      `         ${opts["info"]}\n`,
-      "       </div>\n"
-    );
-  }
-  html.push(
-    "     </footer>\n",
-    "    </div>\n",
-    "  </body>\n",
-    "</html>\n",
-    `<!-- Page built by AZGallery v${getVersion()} at ${new Date().toISOString()}. -->`
-  );
-
-  const albumPath = path.join(docPath, albumDir, album["dir"]);
-  const filePath = path.join(albumPath, "index.html");
-  logger.debug(`Creating ${logger.cyan(filePath)}...`);
-  await fsp.mkdir(albumPath);
-  return fsp.writeFile(filePath, html.join(""), "utf8");
-};
-
-const writeIndexPage = (cur, idx, arr, docPath, opts = {}) => {
-  opts["rootDir"] = opts["rootDir"] || path.posix.sep;
-
-  const html = [];
-  html.push(
-    "<!DOCTYPE html>\n",
-    "<html lang=\"zh-Hans\">\n",
-    "  <head>\n",
-    "    <meta charset=\"utf-8\">\n",
-    "    <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">\n",
-    "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=10\">\n",
-    `    <link rel="stylesheet" type="text/css" href="${path.posix.join(opts["rootDir"], "css/normalize.css")}">\n`,
-    `    <link rel="stylesheet" type="text/css" href="${path.posix.join(opts["rootDir"], "css/index.css")}">\n`,
-    // `    <script type="text/javascript" src="${path.posix.join(opts["rootDir"], "js/index.js")}"></script>\n`,
-    `    <title>${opts["title"] || "gallery"}</title>\n`,
-    "  </head>\n",
-    "  <body>\n",
-    "    <div class=\"container timeline\">\n",
-    "      <header>\n"
-  );
-  if (opts["title"] != null) {
-    html.push(
-      "        <div class=\"title\" id=\"title\">\n",
-      `          <a href="${opts["rootDir"]}">${opts["title"]}</a>\n`,
-      "        </div>\n"
-    );
-  }
-  if (opts["subtitle"] != null) {
-    html.push(
-      `        <div class="subtitle" id="subtitle">${opts["subtitle"]}</div>\n`
-    );
-  }
-  html.push(
-    "      </header>\n",
-    "      <main>\n",
-    "        <div class=\"gallery\" id=\"gallery\">\n",
-  );
-  const albums = cur;
   let lastYear = null;
   let lastMonth = null;
   let lastDay = null;
@@ -272,9 +154,9 @@ const writeIndexPage = (cur, idx, arr, docPath, opts = {}) => {
       );
       for (const image of album["images"]) {
         html.push(
-          "              <div class=\"gallery-album-image card\">\n",
-          `                <a class="image-link" target="_blank" href="${image}"><img src="${image}"></a>\n`,
-          "              </div>\n"
+	  "              <div class=\"gallery-album-image card\">\n",
+	  `                <a class="image-link" target="_blank" href="${image}"><img src="${image}"></a>\n`,
+	  "              </div>\n"
         );
       }
       html.push(
@@ -295,16 +177,22 @@ const writeIndexPage = (cur, idx, arr, docPath, opts = {}) => {
     );
   }
   html.push(
-    "        </div>\n",
-    "        <nav class=\"pagination\" id=\"pagination\">\n",
+    "        </div>\n"
   );
-  for (let i = 0; i < arr.length; ++i) {
+  if (opts["pages"] != null) {
     html.push(
-      `          <a class="page-number" href="${path.posix.join(opts["rootDir"], getPageFileName(i))}">${i + 1}</a>\n`
+      "        <nav class=\"pagination\" id=\"pagination\">\n",
+    );
+    for (let i = 0; i < opts["pages"].length; ++i) {
+      html.push(
+        `          <a class="page-number" href="${path.posix.join(opts["rootDir"], getPageFileName(i))}">${i + 1}</a>\n`
+      );
+    }
+    html.push(
+      "        </nav>\n"
     );
   }
   html.push(
-    "        </nav>\n",
     "      </main>\n",
     "      <footer>\n",
   );
@@ -323,9 +211,25 @@ const writeIndexPage = (cur, idx, arr, docPath, opts = {}) => {
     `<!-- Page built by AZGallery v${getVersion()} at ${new Date().toISOString()}. -->`
   );
 
+  return html.join("");
+};
+
+const writeAlbumPage = async (album, docPath, albumDir, opts = {}) => {
+  if (album["images"].length === 0 && album["text"] == null) {
+    return null;
+  }
+
+  const albumPath = path.join(docPath, albumDir, album["dir"]);
+  const filePath = path.join(albumPath, "index.html");
+  logger.debug(`Creating ${logger.cyan(filePath)}...`);
+  await fsp.mkdir(albumPath);
+  return fsp.writeFile(filePath, renderPage([album], opts), "utf8");
+};
+
+const writeIndexPage = (albums, idx, pages, docPath, opts = {}) => {
   const filePath = path.join(docPath, getPageFileName(idx));
   logger.debug(`Creating ${logger.cyan(filePath)}...`);
-  return fsp.writeFile(filePath, html.join(""), "utf8");
+  return fsp.writeFile(filePath, renderPage(albums, {pages, ...opts}), "utf8");
 };
 
 const build = async (dir, opts) => {
@@ -370,16 +274,16 @@ const build = async (dir, opts) => {
   );
   await fsp.mkdir(path.join(docPath, albumDir));
   await Promise.all([
-    ...albums.map((cur, idx, arr) => {
-      return writeAlbumPage(cur, docPath, albumDir, {
+    ...albums.map((album) => {
+      return writeAlbumPage(album, docPath, albumDir, {
         rootDir,
         title,
         subtitle,
         info
       });
     }),
-    ...paginate(albums, perPage).map((cur, idx, arr) => {
-      return writeIndexPage(cur, idx, arr, docPath, {
+    ...paginate(albums, perPage).map((albums, idx, pages) => {
+      return writeIndexPage(albums, idx, pages, docPath, {
         rootDir,
         title,
         subtitle,
