@@ -1,44 +1,29 @@
 import * as path from "node:path";
 import * as fsp from "node:fs/promises";
-import {loadJSON, getVersion} from "./utils.js";
+import {loadJSON, getPathFn, getURLFn, getVersion} from "./utils.js";
 import Logger from "./logger.js";
 
 let logger = null;
 
-const readGalleryAlbums = async (
-  docPath,
-  galleryDir,
-  albumDir,
-  rootDir = path.posix.sep
-) => {
-  const galleryPath = path.join(docPath, galleryDir);
+const readGalleryAlbums = async (docDir, galleryDir, albumDir) => {
+  const fullGalleryDir = path.join(docDir, galleryDir);
   let subDirs;
   try {
-    subDirs = await fsp.readdir(galleryPath);
+    subDirs = await fsp.readdir(fullGalleryDir);
   } catch (error) {
     logger.error(error);
     subDirs = [];
   }
   const strs = await Promise.all(subDirs.map((dir) => {
-    return fsp.readFile(
-      path.join(
-        galleryPath, dir, "index.json"
-      ),
-      "utf8"
-    );
+    return fsp.readFile(path.join(fullGalleryDir, dir, "index.json"), "utf8");
   }));
   const albums = strs.map(JSON.parse).map((metadata) => {
-    // Convert relative path to full path for URL.
+    // Convert relative path to full path.
     metadata["images"] = metadata["images"].map((image) => {
-      return path.posix.join(rootDir, galleryDir, metadata["dir"], image);
+      return path.join(galleryDir, metadata["dir"], image);
     });
-    // Also add URL to album page here.
-    metadata["path"] = path.posix.join(
-      rootDir,
-      albumDir,
-      metadata["dir"],
-      path.posix.sep
-    );
+    // Also add path to album page here.
+    metadata["path"] = path.join(albumDir, metadata["dir"], path.sep);
     return metadata;
   });
   // Newest first.
@@ -67,8 +52,7 @@ const getPageFileName = (idx, basename = "index") => {
   return idx === 0 ? `${basename}.html` : `${basename}-${idx + 1}.html`;
 };
 
-const renderPage = (albums, opts = {}) => {
-  opts["rootDir"] = opts["rootDir"] || path.posix.sep;
+const renderPage = (docPath, albums, getPath, getURL, opts = {}) => {
   opts["pages"] = opts["pages"] || [];
 
   const html = [];
@@ -78,10 +62,42 @@ const renderPage = (albums, opts = {}) => {
     "  <head>\n",
     "    <meta charset=\"utf-8\">\n",
     "    <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">\n",
-    "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=10\">\n",
-    `    <link rel="stylesheet" type="text/css" href="${path.posix.join(opts["rootDir"], "css/normalize.css")}">\n`,
-    `    <link rel="stylesheet" type="text/css" href="${path.posix.join(opts["rootDir"], "css/index.css")}">\n`,
-    // `    <script type="text/javascript" src="${path.posix.join(opts["rootDir"], "js/index.js")}"></script>\n`,
+    "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=10\">\n"
+  );
+
+  // Open Graph.
+  html.push(
+    `    <meta property="og:site_name" content="${opts["title"] || "gallery"}">\n`,
+    `    <meta property="og:title" content="${opts["title"] || "gallery"}">\n`,
+    "    <meta property=\"og:type\" content=\"website\">\n",
+    `    <meta property="og:url" content="${getURL(docPath)}">\n`
+  );
+  // If we have many albums in a page, only choose the first non-empty one.
+  for (const album of albums) {
+    if (album["images"].length === 0 && album["text"] == null) {
+      continue;
+    }
+
+    if (album["images"].length !== 0) {
+      for (const image of album["images"]) {
+	html.push(
+	  `<meta property="og:image" content="${getURL(image)}">\n`
+	);
+      }
+    }
+
+    if (album["text"] != null) {
+      html.push(
+	`<meta property="og:description" content="${album["text"]}">\n`
+      );
+    }
+    break;
+  }
+
+  html.push(
+    `    <link rel="stylesheet" type="text/css" href="${getPath("css/normalize.css")}">\n`,
+    `    <link rel="stylesheet" type="text/css" href="${getPath("css/index.css")}">\n`,
+    // `    <script type="text/javascript" src="${getPath("js/index.js")}"></script>\n`,
     `    <title>${opts["title"] || "gallery"}</title>\n`,
     "  </head>\n",
     "  <body>\n",
@@ -91,7 +107,7 @@ const renderPage = (albums, opts = {}) => {
   if (opts["title"] != null) {
     html.push(
       "        <div class=\"title\" id=\"title\">\n",
-      `          <a href="${opts["rootDir"]}">${opts["title"]}</a>\n`,
+      `          <a href="${getPath()}">${opts["title"]}</a>\n`,
       "        </div>\n"
     );
   }
@@ -145,7 +161,7 @@ const renderPage = (albums, opts = {}) => {
     html.push(
       "          <div class=\"gallery-album\">\n",
       "            <h4 class=\"gallery-created\">\n",
-      `              <a class="album-link" href="${album["path"]}">${obj["hour"]}:${obj["minute"]}:${obj["second"]}</a>\n`,
+      `              <a class="album-link" href="${getPath(album["path"])}">${obj["hour"]}:${obj["minute"]}:${obj["second"]}</a>\n`,
       "            </h4>\n"
     );
     if (album["images"].length !== 0) {
@@ -154,9 +170,9 @@ const renderPage = (albums, opts = {}) => {
       );
       for (const image of album["images"]) {
         html.push(
-	  "              <div class=\"gallery-album-image card\">\n",
-	  `                <a class="image-link" target="_blank" href="${image}"><img src="${image}"></a>\n`,
-	  "              </div>\n"
+          "              <div class=\"gallery-album-image card\">\n",
+          `                <a class="image-link" target="_blank" href="${getPath(image)}"><img src="${getPath(image)}"></a>\n`,
+          "              </div>\n"
         );
       }
       html.push(
@@ -185,7 +201,7 @@ const renderPage = (albums, opts = {}) => {
     );
     for (let i = 0; i < opts["pages"].length; ++i) {
       html.push(
-        `          <a class="page-number" href="${path.posix.join(opts["rootDir"], getPageFileName(i))}">${i + 1}</a>\n`
+        `          <a class="page-number" href="${getPath(getPageFileName(i))}">${i + 1}</a>\n`
       );
     }
     html.push(
@@ -214,22 +230,23 @@ const renderPage = (albums, opts = {}) => {
   return html.join("");
 };
 
-const writeAlbumPage = async (album, docPath, albumDir, opts = {}) => {
+const writeAlbumPage = async (album, docDir, albumDir, getPath, getURL, opts = {}) => {
   if (album["images"].length === 0 && album["text"] == null) {
     return null;
   }
 
-  const albumPath = path.join(docPath, albumDir, album["dir"]);
-  const filePath = path.join(albumPath, "index.html");
+  const docPath = path.join(albumDir, album["dir"], "index.html");
+  const filePath = path.join(docDir, docPath);
   logger.debug(`Creating ${logger.cyan(filePath)}...`);
-  await fsp.mkdir(albumPath);
-  return fsp.writeFile(filePath, renderPage([album], opts), "utf8");
+  await fsp.mkdir(path.dirname(filePath));
+  return fsp.writeFile(filePath, renderPage(docPath, [album], getPath, getURL, opts), "utf8");
 };
 
-const writeIndexPage = (albums, idx, pages, docPath, opts = {}) => {
-  const filePath = path.join(docPath, getPageFileName(idx));
+const writeIndexPage = (albums, idx, pages, docDir, getPath, getURL, opts = {}) => {
+  const docPath = getPageFileName(idx);
+  const filePath = path.join(docDir, docPath);
   logger.debug(`Creating ${logger.cyan(filePath)}...`);
-  return fsp.writeFile(filePath, renderPage(albums, {pages, ...opts}), "utf8");
+  return fsp.writeFile(filePath, renderPage(docPath, albums, getPath, getURL, {pages, ...opts}), "utf8");
 };
 
 const build = async (dir, opts) => {
@@ -246,6 +263,7 @@ const build = async (dir, opts) => {
     docDir,
     galleryDir,
     albumDir,
+    baseURL,
     rootDir,
     perPage,
     title,
@@ -253,38 +271,33 @@ const build = async (dir, opts) => {
     info
   } = config;
 
-  const docPath = path.join(dir, docDir);
+  const fullDocDir = path.join(dir, docDir);
   // Delete generated pages.
   await Promise.all([
     albumDir,
-    ...(await fsp.readdir(docPath)).filter((f) => {
+    ...(await fsp.readdir(fullDocDir)).filter((f) => {
       return f.startsWith("index");
     })
   ].map((f) => {
-    const p = path.join(docPath, f);
+    const p = path.join(fullDocDir, f);
     logger.debug(`Deleting ${logger.cyan(p)}...`);
     return fsp.rm(p, {"recursive": true, "force": true});
   }));
   // Create new pages.
-  const albums = await readGalleryAlbums(
-    docPath,
-    galleryDir,
-    albumDir,
-    rootDir
-  );
-  await fsp.mkdir(path.join(docPath, albumDir));
+  const albums = await readGalleryAlbums(fullDocDir, galleryDir, albumDir);
+  await fsp.mkdir(path.join(fullDocDir, albumDir));
+  const getPath = getPathFn(rootDir);
+  const getURL = getURLFn(baseURL, rootDir);
   await Promise.all([
     ...albums.map((album) => {
-      return writeAlbumPage(album, docPath, albumDir, {
-        rootDir,
+      return writeAlbumPage(album, fullDocDir, albumDir, getPath, getURL, {
         title,
         subtitle,
         info
       });
     }),
     ...paginate(albums, perPage).map((albums, idx, pages) => {
-      return writeIndexPage(albums, idx, pages, docPath, {
-        rootDir,
+      return writeIndexPage(albums, idx, pages, fullDocDir, getPath, getURL, {
         title,
         subtitle,
         info
