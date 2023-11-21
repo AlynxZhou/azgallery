@@ -2,7 +2,7 @@
   "docDir": "docs",
   "galleryDir": "gallery",
   "albumDir": "albums",
-  "baseURL": "https://gallary.alynx.one",
+  "baseURL": "https://gallery.alynx.one",
   "rootDir": "/",
   "perPage": 10,
   "title": "Alynx Zhou 的照片墙",
