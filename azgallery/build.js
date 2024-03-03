@@ -200,9 +200,15 @@ const renderPage = (docPath, albums, getPath, getURL, opts = {}) => {
       "        <nav class=\"pagination\" id=\"pagination\">\n",
     );
     for (let i = 0; i < opts["pages"].length; ++i) {
-      html.push(
-        `          <a class="page-number" href="${getPath(getPageFileName(i))}">${i + 1}</a>\n`
-      );
+      if (i === opts["idx"]) {
+        html.push(
+          `          <a class="page-number current" href="${getPath(getPageFileName(i))}">${i + 1}</a>\n`
+        );
+      } else {
+        html.push(
+          `          <a class="page-number" href="${getPath(getPageFileName(i))}">${i + 1}</a>\n`
+        );
+      }
     }
     html.push(
       "        </nav>\n"
@@ -246,7 +252,7 @@ const writeIndexPage = (albums, idx, pages, docDir, getPath, getURL, opts = {}) 
   const docPath = getPageFileName(idx);
   const filePath = path.join(docDir, docPath);
   logger.debug(`Creating ${logger.cyan(filePath)}...`);
-  return fsp.writeFile(filePath, renderPage(docPath, albums, getPath, getURL, {pages, ...opts}), "utf8");
+  return fsp.writeFile(filePath, renderPage(docPath, albums, getPath, getURL, {pages, idx, ...opts}), "utf8");
 };
 
 const build = async (dir, opts) => {

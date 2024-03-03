@@ -257,6 +257,11 @@ a.page-number {
   border-bottom: 0.15em solid var(--color-4);
 }
 
+a.page-number.current {
+  border-top: 0.1em solid var(--color-4);
+  border-bottom: 0.15em solid var(--color-4);
+}
+
 div.info {
   padding: 1rem 0;
 }
