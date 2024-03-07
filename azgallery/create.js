@@ -153,10 +153,12 @@ const create = async (dir, opts) => {
     "date": null
   };
 
-  if (opts["text"] != null) {
-    album["text"] = opts["text"].join("");
-  } else {
-    album["text"] = await readOne("Please attach text here (enter empty answer to skip): ");
+  if (opts["text"] !== false) {
+    if (opts["text"] != null) {
+      album["text"] = opts["text"].join("");
+    } else {
+      album["text"] = await readOne("Please attach text here (enter empty answer to skip): ");
+    }
   }
 
   if (opts["image"] != null) {
