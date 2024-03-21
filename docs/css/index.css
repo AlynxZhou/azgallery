@@ -209,7 +209,7 @@ div.gallery-album-image {
 /* } */
 
 div.gallery-album-image a.image-link:hover {
-  opacity: 0.9;
+  opacity: 0.85;
 }
 
 div.gallery-album-image a.image-link img {
