@@ -97,7 +97,7 @@ div.title {
 
 div.subtitle {
   font-size: 2em;
-  padding: 1rem 0;
+  padding: 0;
 }
 
 body::before {
