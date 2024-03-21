@@ -208,7 +208,11 @@ div.gallery-album-image {
 /*   height: 90vh; */
 /* } */
 
-div.gallery-album-image img {
+div.gallery-album-image a.image-link:hover {
+  opacity: 0.9;
+}
+
+div.gallery-album-image a.image-link img {
   /* Fill parent. */
   width: 100%;
   height: 100%;
