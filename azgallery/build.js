@@ -1,4 +1,5 @@
 import * as path from "node:path";
+import * as fs from "node:fs";
 import * as fsp from "node:fs/promises";
 import {loadJSON, getPathFn, getURLFn, getVersion} from "./utils.js";
 import Logger from "./logger.js";
@@ -9,13 +10,17 @@ const readGalleryAlbums = async (docDir, galleryDir, albumDir) => {
   const fullGalleryDir = path.join(docDir, galleryDir);
   let subDirs;
   try {
-    subDirs = await fsp.readdir(fullGalleryDir);
+    subDirs = (await fsp.readdir(fullGalleryDir)).map((dir) => {
+      return path.join(fullGalleryDir, dir);
+    }).filter((dir) => {
+      return fs.statSync(dir).isDirectory();
+    });
   } catch (error) {
     logger.error(error);
     subDirs = [];
   }
   const strs = await Promise.all(subDirs.map((dir) => {
-    return fsp.readFile(path.join(fullGalleryDir, dir, "index.json"), "utf8");
+    return fsp.readFile(path.join(dir, "index.json"), "utf8");
   }));
   const albums = strs.map(JSON.parse).map((metadata) => {
     // Convert relative path to full path.
